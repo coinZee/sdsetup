@@ -8,7 +8,7 @@ directory="/root/stable-diffusion-webui-forge/"
 
 if [ -d "$directory" ]; then
     echo "exist doing it"
-    python launch.py --enable-insecure-extension-access --share --xformers
+    python /root/stable-diffusion-webui-forge/launch.py --enable-insecure-extension-access --share --xformers
 else
     echo "Directory does not exist."
     git clone https://github.com/lllyasviel/stable-diffusion-webui-forge.git
