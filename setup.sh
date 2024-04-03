@@ -30,7 +30,7 @@ else
 
     cd /root/stable-diffusion-webui-forge/
     pip3 install -U xformers==0.0.16 opencv-python-headless
+    python launch.py --enable-insecure-extension-access --share --xformers 
 
-# python launch.py --enable-insecure-extension-access --share --xformers 
-
+fi
 
