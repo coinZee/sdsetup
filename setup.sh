@@ -23,7 +23,8 @@ wget "https://civitai.com/api/download/models/348913" --content-disposition
 wget "https://huggingface.co/cagliostrolab/animagine-xl-3.1/resolve/main/animagine-xl-3.1.safetensors" --content-disposition
 
 cd /root/stable-diffusion-webui-forge/
-pip3 install -U xformers==0.0.17
+pip3 install -U xformers==0.0.16 opencv-python-headless
+
 python launch.py --enable-nsecure-extension-access --share --xformers 
 
 
