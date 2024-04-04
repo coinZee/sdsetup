@@ -43,17 +43,17 @@ with sdxl_image.imports():
     from fastapi import Response
     from huggingface_hub import snapshot_download
 
-@stub.cls(gpu=gpu.A10G(), container_idle_timeout=2, image=sdxl_image)
+@stub.cls(gpu=gpu.T4(), container_idle_timeout=2, image=sdxl_image)
 class Model:
     @build()
     def build(self):
         ignore = [
             "*.bin",
             "*.onnx_data",
-            "*/diffusion_pytorch_model.safetensors",
+            "*/Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors",
         ]
         snapshot_download(
-            "stabilityai/stable-diffusion-xl-base-1.0", ignore_patterns=ignore
+            "RunDiffusion/Juggernaut-XL-v9", ignore_patterns=ignore
         )
         snapshot_download(
             "stabilityai/stable-diffusion-xl-refiner-1.0",
@@ -71,7 +71,7 @@ class Model:
 
         # Load base model
         self.base = DiffusionPipeline.from_pretrained(
-            "stabilityai/stable-diffusion-xl-base-1.0", **load_options
+            "RunDiffusion/Juggernaut-XL-v9", **load_options
         )
 
         # Load refiner model
@@ -92,6 +92,8 @@ class Model:
         image = self.base(
             prompt=prompt,
             negative_prompt=negative_prompt,
+            width=1024,
+            height=1024,
             num_inference_steps=n_steps,
             denoising_end=high_noise_frac,
             output_type="latent",
@@ -100,6 +102,8 @@ class Model:
             prompt=prompt,
             negative_prompt=negative_prompt,
             num_inference_steps=n_steps,
+            width=1024,
+            height=1024,
             denoising_start=high_noise_frac,
             image=image,
         ).images[0]
@@ -110,13 +114,13 @@ class Model:
         return byte_stream
 
     @method()
-    def inference(self, prompt, n_steps=24, high_noise_frac=0.8):
+    def inference(self, prompt, n_steps=35, high_noise_frac=0.8):
         return self._inference(
             prompt, n_steps=n_steps, high_noise_frac=high_noise_frac
         ).getvalue()
 
 def home_handle():
-    image_bytes = Model().inference.remote("a girl")
+    image_bytes = Model().inference.remote(" cinematic portrait of a wood sculpture of a cat")
     if image_bytes:
         image_base64 = base64.b64encode(image_bytes).decode('utf-8')
         # Embed base64-encoded string into HTML image tag
