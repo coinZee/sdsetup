@@ -43,7 +43,7 @@ with sdxl_image.imports():
     from fastapi import Response
     from huggingface_hub import snapshot_download
 
-@stub.cls(gpu=gpu.T4(), container_idle_timeout=2, image=sdxl_image)
+@stub.cls(gpu=gpu.A10G(), container_idle_timeout=2, image=sdxl_image)
 class Model:
     @build()
     def build(self):
@@ -61,6 +61,7 @@ class Model:
         )
 
     @enter()
+    # @method()
     def enter(self):
         load_options = dict(
             torch_dtype=torch.float16,
@@ -119,24 +120,41 @@ class Model:
             prompt, n_steps=n_steps, high_noise_frac=high_noise_frac
         ).getvalue()
 
-def home_handle():
-    image_bytes = Model().inference.remote(" cinematic portrait of a wood sculpture of a cat")
+# @stub.cls(gpu=gpu.T4(), container_idle_timeout=2, image=sdxl_image)
+
+def home_handle(mdl):
+    for x in range (5):
+        image_bytes = mdl.inference.remote(" cinematic portrait of a wood sculpture of a cat")
     if image_bytes:
         image_base64 = base64.b64encode(image_bytes).decode('utf-8')
         # Embed base64-encoded string into HTML image tag
         html_content = f'<img src="data:image/jpeg;base64,{image_base64}" alt="Image">'
-
         return render_template_string(html_content)
         # return send_file(image_bytes, mimetype='image/jpeg')
         # return f"{image_bytes}"
     else:
         return "Not yo gango"    
 
+def load_mdl():
+    model_loaded = Model().enter()
+    # model_loaded = Model().enter().remote()
+    if model_loaded:
+        return "loaded"
+    else:
+        return f"couldnt load{model_loaded}"
+
 @stub.function(image=image)
 @app.route('/api/generate')
 def home():
-    return home_handle()
+    my_modal = Model()
+    # my_modal.build()
+    return home_handle(my_modal)
+
+@stub.function(image=image)
+@app.route('/api/loadm')
+def loadm():
+    return load_mdl()
 
 @stub.local_entrypoint()
 def main():
-    app.run(host="0.0.0.0", port="6969")
+    app.run(host="0.0.0.0", port="6969", threaded=True)
