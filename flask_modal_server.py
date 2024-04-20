@@ -23,9 +23,12 @@ sdxl_image = (
     Image.debian_slim(python_version="3.10")
     .apt_install(
         "libglib2.0-0", "libsm6", "libxrender1", "libxext6", "ffmpeg", "libgl1"
-    )
-    .pip_install(
-        "diffusers==0.26.3",
+    # ).pip_install_from_pyproject(
+    #     "https://github.com/huggingface/diffusers"
+    ).pip_install(
+        # "git+https://github.com/huggingface/diffusers",
+        # "diffusers==0.28.0",
+        "diffusers",
         "invisible_watermark==0.2.0",
         "transformers~=4.38.2",
         "accelerate==0.27.2",
@@ -50,10 +53,10 @@ class Model:
         ignore = [
             "*.bin",
             "*.onnx_data",
-            "*/Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors",
+            "*/playground-v2.5-1024px-aesthetic.safetensors",
         ]
         snapshot_download(
-            "RunDiffusion/Juggernaut-XL-v9", ignore_patterns=ignore
+            "playgroundai/playground-v2.5-1024px-aesthetic", ignore_patterns=ignore
         )
         snapshot_download(
             "stabilityai/stable-diffusion-xl-refiner-1.0",
@@ -72,7 +75,7 @@ class Model:
 
         # Load base model
         self.base = DiffusionPipeline.from_pretrained(
-            "RunDiffusion/Juggernaut-XL-v9", **load_options
+            "playgroundai/playground-v2.5-1024px-aesthetic", **load_options
         )
 
         # Load refiner model
@@ -90,24 +93,25 @@ class Model:
 
     def _inference(self, prompt, n_steps=24, high_noise_frac=0.8):
         negative_prompt = "disfigured, ugly, deformed"
-        image = self.base(
-            prompt=prompt,
-            negative_prompt=negative_prompt,
-            width=1024,
-            height=1024,
-            num_inference_steps=n_steps,
-            denoising_end=high_noise_frac,
-            output_type="latent",
-        ).images
-        image = self.refiner(
-            prompt=prompt,
-            negative_prompt=negative_prompt,
-            num_inference_steps=n_steps,
-            width=1024,
-            height=1024,
-            denoising_start=high_noise_frac,
-            image=image,
-        ).images[0]
+        image = self.base(prompt=prompt, num_inference_steps=50, guidance_scale=3).images[0]
+        # image = self.base(
+        #     prompt=prompt,
+        #     negative_prompt=negative_prompt,
+        #     width=1024,
+        #     height=1024,
+        #     num_inference_steps=n_steps,
+        #     denoising_end=high_noise_frac,
+        #     output_type="latent",
+        # ).images
+        # image = self.refiner(
+        #     prompt=prompt,
+        #     negative_prompt=negative_prompt,
+        #     num_inference_steps=n_steps,
+        #     width=1024,
+        #     height=1024,
+        #     denoising_start=high_noise_frac,
+        #     image=image,
+        # ).images[0]
 
         byte_stream = io.BytesIO()
         image.save(byte_stream, format="JPEG")
@@ -123,17 +127,17 @@ class Model:
 # @stub.cls(gpu=gpu.T4(), container_idle_timeout=2, image=sdxl_image)
 
 def home_handle(mdl):
-    for x in range (5):
-        image_bytes = mdl.inference.remote(" cinematic portrait of a wood sculpture of a cat")
+    # for x in range (5):
+    image_bytes = mdl.inference.remote(" cinematic portrait of a girl with white hair on mars")
     if image_bytes:
         image_base64 = base64.b64encode(image_bytes).decode('utf-8')
         # Embed base64-encoded string into HTML image tag
         html_content = f'<img src="data:image/jpeg;base64,{image_base64}" alt="Image">'
-        return render_template_string(html_content)
+        yield render_template_string(html_content)
         # return send_file(image_bytes, mimetype='image/jpeg')
         # return f"{image_bytes}"
     else:
-        return "Not yo gango"    
+        yield "Not yo gango"    
 
 def load_mdl():
     model_loaded = Model().enter()
